@@ -1,6 +1,6 @@
 # vpinos-repo
 
-Signed apt repository for VPINOS packages (`vpinball`, `vpinfe`). Packages are
+Signed apt repository for VPINOS packages (`vpinball`, `vpinfe`, `vpxconfig`). Packages are
 built in [`superhac/vpinos-deb-repo`](https://github.com/superhac/vpinos-deb-repo);
 this repo publishes them as a flat apt repository hosted on a single, fixed
 GitHub Release (tag `apt`).
@@ -25,7 +25,7 @@ so use Ubuntu 24.04 / Debian 13 or newer.
 
    ```bash
    sudo apt update
-   sudo apt install vpinball vpinfe
+   sudo apt install vpinball vpinfe vpxconfig
    ```
 
 Updates arrive through the normal `sudo apt update && sudo apt upgrade`.
@@ -40,7 +40,7 @@ gpg --show-keys --fingerprint /etc/apt/keyrings/vpinos.asc
 To remove the repository:
 
 ```bash
-sudo apt remove vpinball vpinfe   # optional
+sudo apt remove vpinball vpinfe vpxconfig   # optional
 sudo rm /etc/apt/sources.list.d/vpinos.list /etc/apt/keyrings/vpinos.asc
 sudo apt update
 ```
