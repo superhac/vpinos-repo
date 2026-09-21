@@ -1,0 +1,57 @@
+name: Update apt repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_release_tag:
+        description: Release tag in vpinos-deb-repo to publish (blank = latest)
+        required: false
+        default: ""
+      dry_run:
+        description: Build and sign but do not upload
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# The publish step is read-modify-write on the apt release.
+concurrency:
+  group: update-apt-repo
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-utils dpkg-dev gnupg
+
+      - name: Import signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.VPINOS_GPG_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$GPG_PRIVATE_KEY" ]]; then
+            echo "Secret VPINOS_GPG_PRIVATE_KEY is not set." >&2
+            exit 1
+          fi
+          printf '%s\n' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          fpr="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/{print $10; exit}')"
+          committed="$(gpg --show-keys --with-colons keys/vpinos.asc | awk -F: '/^fpr:/{print $10; exit}')"
+          if [[ "$fpr" != "$committed" ]]; then
+            echo "Secret key ($fpr) does not match keys/vpinos.asc ($committed)." >&2
+            exit 1
+          fi
+          echo "VPINOS_GPG_KEY=$fpr" >> "$GITHUB_ENV"
+
+      - name: Update repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VPINOS_GPG_PASSPHRASE: ${{ secrets.VPINOS_GPG_PASSPHRASE }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: scripts/update-repo.sh "${{ inputs.source_release_tag }}"
